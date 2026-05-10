@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"io"
+	"io"  
 	"os"
 	"runtime"
 	"strconv"
@@ -107,7 +107,9 @@ func main() {
 	pending := make(map[int][]string)
 	nextExpected := 0
 	processed := 0
+	var orderMu sync.Mutex
 	for r := range results {
+		orderMu.Lock()
 		pending[r.Index] = r.Row
 		for {
 			row, ok := pending[nextExpected]
@@ -116,11 +118,13 @@ func main() {
 			}
 			delete(pending, nextExpected)
 			if err := writer.Write(withoutLinkColumn(row)); err != nil {
+				orderMu.Unlock()
 				panic(err)
 			}
 			nextExpected++
 			processed++
 		}
+		orderMu.Unlock()
 	}
 
 	feeder.Wait()
